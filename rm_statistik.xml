@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension version="3.0" type="plugin" group="jbackend" method="upgrade">
+    <name>plg_jbackend_rm_statistik</name>
+    <author>Richard Gebhard</author>
+    <creationDate>01/2021</creationDate>
+    <copyright>Copyright (C) 2021 Routes-Manger</copyright>
+    <license>http://www.gnu.org/licenses/gpl-2.0.html GNU/GPL</license>
+    <authorEmail>info@routes-manager.de</authorEmail>
+    <authorUrl>https://wwws.routes-manager.de</authorUrl>
+    <version>1.0.0</version>
+    <description>Statistiken abrufen</description>
+
+  <files>
+    <filename plugin="rm_statistik">rm_statistik.php</filename>
+    <filename>index.html</filename>
+  </files>
+  <updateservers>
+		<server type="extension" priority="1" name="API Plugin RM Statistik">https://update.site-optimierer.de/RM/Plugins/API/rm_statistik/plg_rm_statistik.xml</server>
+	</updateservers>
+
+  <config>
+    <fields name="params">
+      <fieldset name="basic">
+      </fieldset>
+    </fields>
+  </config>
+
+</extension>
