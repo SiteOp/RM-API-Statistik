@@ -53,26 +53,6 @@ class plgJBackendRm_Statistik extends JPlugin
         $error['status_code'] = 400;
         $error['error_description'] = 'Action not specified';
         break;
-      case 'ID_MISSING':
-        $error['status_code'] = 422;
-        $error['error_description'] = 'Id is required';
-        break;
-      case 'STARS_NVAL':
-        $error['status_code'] = 422;
-        $error['error_description'] = 'Number of stars is wrong';
-        break;
-      case 'GRADE_NVAL':
-        $error['status_code'] = 422;
-        $error['error_description'] = 'Routegrad is wrong';
-        break; 
-      case 'DATE_NVAL':
-        $error['status_code'] = 422;
-        $error['error_description'] = 'Check the format of the date Y-m-d';
-        break;
-      case 'DATETIME_NVAL':
-        $error['status_code'] = 422;
-        $error['error_description'] = 'Check the format of the date Y-m-d H:i:s';
-        break;
     }
     return $error;
   }
@@ -81,50 +61,111 @@ class plgJBackendRm_Statistik extends JPlugin
   /**
    * Anzahl Routen
    */
-  public static function getCountRoutesTotal()
-  {
-    // DB-Query.
-    $db = Factory::getDbo();
+  public static function getRoutesTotal() {
+    $app = Factory::getApplication();
+    $routes_total    = $app->input->get('routes_total', 0, 'BOOL');
 
-    $query = $db->getQuery(true);
-    $query->select(array('COUNT(*)'))
-          ->from('#__act_route')
-    ->where('state = 1');
+      if(1 == $routes_total) {
+        $db = Factory::getDbo();
 
-     $db->setQuery($query);
-     $result = $db->loadResult();
-   
-     return $result;
+        $query = $db->getQuery(true);
+        $query->select(array('COUNT(*)'))
+              ->from('#__act_route')
+              ->where('state IN(1,-1)');
+
+        $db->setQuery($query);
+        $result = $db->loadResult();
+      }
+      else {
+        $result = 0;
+      }
+  
+    return $result;
   }
 
-  
 
+  
+  /**
+   * Anzahl Kommentare
+   */
+  public static function getCommentsTotal() {
+
+    $app = Factory::getApplication();
+    $comments_total    = $app->input->get('comments_total', 0, 'BOOL');
+
+      if(1 == $comments_total) {
+        $db = Factory::getDbo();
+
+        $query = $db->getQuery(true);
+        $query->select(array('COUNT(c.id)'))
+              ->from('#__act_comment AS c')
+              ->join('LEFT', '#__act_route AS r ON r.id = c.route')
+              ->where('c.state IN(1,-1)');
+
+        $db->setQuery($query);
+        $result = $db->loadResult();
+      }
+      else {
+        $result = 0;
+      }
+
+    return $result;
+  }
+
+
+  public static function getNewRoutesTotal(){
+
+    $app = Factory::getApplication();
+    $new_routes_total    = $app->input->get('new_routes_total', 0, 'UINT');
+
+      if(1 == $new_routes_total) {
+
+        $db = Factory::getDbo();
+        $params    = JComponentHelper::getParams('com_act');
+        $newRouteDateRange  = $params['newroutedaterange'];
+
+        $query = $db->getQuery(true);
+        $query->select('COUNT(CASE WHEN a.setterdate > DATE_SUB( NOW(), INTERVAL '.$newRouteDateRange.' DAY ) then 1 ELSE NULL END) as  newroutes')
+              ->from('#__act_route AS a')
+              ->where('a.state IN(1,-1)')
+              ->where('a.hidden != 1');
+              
+        $db->setQuery($query);
+        $result = $db->loadResult();
+      }
+        else {
+          $result = 0;
+      }
+      return $result;
+  }
+  
 
   /**
    * Kommentare
    */
-  public function getComments()
-  {
+  public function getComments(){
+
     $app = Factory::getApplication();
-    
-    // Eigene Anforderungsparameter abrufen
-    $limit    = $app->input->get('limit',   null, 'UINT');
+    $limit    = $app->input->get('limit_comments', 0, 'UINT');
 
-    // DB-Query
-    $db	   = Factory::getDBO();
-    $query = $db->getQuery(true);
+      if($limit >0) {
 
-    $query->select(array('comment','stars'))
-          ->from('#__act_comment')
-            ->where('state = 1')
-            ->where('comment != "" ')
-            ->order('created DESC')
-          ->setLimit($limit); 
+        $db	   = Factory::getDBO();
+        $query = $db->getQuery(true);
 
-    $db->setQuery($query);
+        $query->select(array('c.comment','c.stars','g.uiaa', 'c.route AS route_id'))
+              ->from('#__act_comment AS c')
+              ->join('LEFT', '#__act_grade AS g ON g.id = c.myroutegrade')
+              ->where('c.state = 1')
+              ->where('c.comment != "" ')
+              ->order('c.created DESC')
+              ->setLimit($limit); 
 
-    return $db->loadAssocList();
-
+        $db->setQuery($query);
+      
+        return $db->loadAssocList();
+      }
+    return 0;
   }
 
 
@@ -132,60 +173,55 @@ class plgJBackendRm_Statistik extends JPlugin
   /**
    * Routen
    */
-  public function getRoutes()
-  {
+  public function getRoutes() {
+
     $app = Factory::getApplication();
-    
-    // Eigene Anforderungsparameter abrufen
-    $limit    = $app->input->get('limit',   null, 'UINT');
+    $limit    = $app->input->get('limit_routes', 0, 'UINT');
 
-    // DB-Query
-    $db	   = Factory::getDBO();
-    $query = $db->getQuery(true);
+      if($limit >0) {
+      
+        $db	   = Factory::getDBO();
+        $query = $db->getQuery(true);
 
-    $query->select(array('r.id',
-                         'r.name', 
-                         's.settername', 
-                         'r.settergrade', 
-                         'g.uiaa',
-                         'IFNULL(round(t.avg_stars, 1), 0) AS rating',
-                         'r.setterdate'))
-          ->from('#__act_route AS r')
-          ->join('LEFT', '#__act_setter AS s ON s.id=r.setter')
-          ->join('LEFT', '#__act_trigger_calc AS t ON t.id = r.id')
-          ->join('LEFT', '#__act_grade AS g ON g.id = t.calc_grade_round')
-          ->where('r.state = 1')
-          ->order('r.setterdate DESC')
-          ->setLimit($limit); 
+        $query->select(array('r.id',
+                            'r.name', 
+                            's.settername', 
+                            'r.settergrade', 
+                            'g.uiaa',
+                            'IFNULL(round(t.avg_stars, 1), 0) AS rating',
+                            'r.setterdate'))
+              ->from('#__act_route AS r')
+              ->join('LEFT', '#__act_setter AS s ON s.id=r.setter')
+              ->join('LEFT', '#__act_trigger_calc AS t ON t.id = r.id')
+              ->join('LEFT', '#__act_grade AS g ON g.id = t.calc_grade_round')
+              ->where('r.state = 1')
+              ->order('r.setterdate DESC')
+              ->setLimit($limit); 
 
-    $db->setQuery($query);
+        $db->setQuery($query);
 
-    return $db->loadAssocList();
+        return $db->loadAssocList();
+      }
+      else { 
+        return 0;
+      }
   }
-
-
 
   /**
    * Zusammenfügen
    */
-  public function actionStatistik(&$response, &$status = null) 
-  {
-    
-    $response = array('route' =>  self::getRoutes(),
-                      'comment' => self::getComments(),
-                      'routestotal' => self::getCountRoutesTotal()
+  public function actionStatistik(&$response, &$status = null) {
+    $response['data'] = array('route' =>  self::getRoutes(),
+                              'comment' => self::getComments(),
+                              'routes_total' => self::getRoutesTotal(),
+                              'comments_total' => self::getCommentsTotal(),
+                              'new_routes_total' => self::getNewRoutesTotal()
                    );
 
-    $response[] = $response;
-
-        // Erstellen der Antwort
+    // Erstellen der Antwort
     $response['status'] = 'ok';
-
-        return true;
+    return true;
   }
-
-
-
 
   /**
    * Fulfills requests for tags module
