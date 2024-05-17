@@ -153,9 +153,10 @@ class plgJBackendRm_Statistik extends JPlugin
         $db	   = Factory::getDBO();
         $query = $db->getQuery(true);
 
-        $query->select(array('c.comment','c.stars','g.uiaa', 'c.route AS route_id'))
+        $query->select(array('c.comment','c.stars','g.uiaa', 'c.route AS route_id', 'r.name AS routename'))
               ->from('#__act_comment AS c')
               ->join('LEFT', '#__act_grade AS g ON g.id = c.myroutegrade')
+              ->join('LEFT', '#__act_route AS r ON r.id = c.route')
               ->where('c.state = 1')
               ->where('c.comment != "" ')
               ->order('c.created DESC')
