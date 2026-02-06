@@ -7,7 +7,7 @@
     <license>http://www.gnu.org/licenses/gpl-2.0.html GNU/GPL</license>
     <authorEmail>info@routes-manager.de</authorEmail>
     <authorUrl>https://wwws.routes-manager.de</authorUrl>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
     <description>Statistiken abrufen</description>
 
   <files>
